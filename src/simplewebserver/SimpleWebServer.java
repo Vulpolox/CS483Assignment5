@@ -1,15 +1,16 @@
 package simplewebserver;
 
-/****************************************************************
+/* ***************************************************************
 SimpleWebServer.java
 This toy web server is used to illustrate security vulnerabilities. This web server only supports extremely simple HTTP GET requests.
-****************************************************************/
+*************************************************************** */
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class SimpleWebServer {
+public class SimpleWebServer
+	{
 
     /* Run the HTTP server on this TCP port. */
     private static final int PORT = 8080;
@@ -21,8 +22,10 @@ public class SimpleWebServer {
     	dServerSocket = new ServerSocket (PORT);
     }
 
-    public void run() throws Exception {
-    	while (true) {
+    public void run() throws Exception
+	{
+    	while (true)
+		{
     		/* wait for a connection from a client */
     		Socket s = dServerSocket.accept();
 
@@ -32,7 +35,8 @@ public class SimpleWebServer {
     }
 
     /* Reads the HTTP request from the client, and responds with the file the user requested or a HTTP error code. */
-    public void processRequest(Socket s) throws Exception {
+    public void processRequest(Socket s) throws Exception
+	{
     	/* used to read data from the client */
     	BufferedReader br = new BufferedReader (new InputStreamReader (s.getInputStream()));
 
@@ -51,12 +55,14 @@ public class SimpleWebServer {
     	command = st.nextToken();
     	pathname = st.nextToken();
 
-    	if (command.equals("GET")) {
+    	if (command.equals("GET"))
+		{
     		/* if the request is a GET try to respond with the file the user is requesting */
     		System.out.println("Path name: "+pathname);
     		serveFile (osw,pathname);
     	}
-    	else {
+    	else
+		{
     		/* if the request is a NOT a GET, return an error saying this server does not implement the requested command */
     		osw.write ("HTTP/1.0 501 Not Implemented\n\n");
     	}
@@ -65,7 +71,8 @@ public class SimpleWebServer {
     	osw.close();
     }
 
-    public void serveFile (OutputStreamWriter osw, String pathname) throws Exception {
+    public void serveFile (OutputStreamWriter osw, String pathname) throws Exception
+	{
     	FileReader fr=null;
     	int c=-1;
     	StringBuffer sb = new StringBuffer();
@@ -80,7 +87,7 @@ public class SimpleWebServer {
 
     	/* try to open file specified by pathname */
     	try {
-//    		System.out.println("Path name: "+pathname);
+            // System.out.println("Path name: "+pathname);
     		fr = new FileReader (pathname);
     		c = fr.read();
     	}
@@ -102,7 +109,8 @@ public class SimpleWebServer {
     }
 
     /* This method is called when the program is run from the command line. */
-    public static void main (String argv[]) throws Exception {
+    public static void main (String argv[]) throws Exception
+	{
     	/* Create a SimpleWebServer object, and run it */
     	SimpleWebServer sws = new SimpleWebServer();
     	sws.run();
