@@ -1,117 +1,114 @@
 package simplewebserver;
 
-/* ***************************************************************
-SimpleWebServer.java
-This toy web server is used to illustrate security vulnerabilities. This web server only supports extremely simple HTTP GET requests.
-*************************************************************** */
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class SimpleWebServer
-{
-
-    /* Run the HTTP server on this TCP port. */
+public class SimpleWebServer {
     private static final int PORT = 8080;
-
-    /* The socket used to process incoming connections from web clients */
     private static ServerSocket dServerSocket;
+    private static final String LOG_FILE = "./logs/server.log";
+	private static final String ERROR_LOG_FILE = "./logs/error.log";
 
-	/* Constructor */
-    public SimpleWebServer () throws Exception { dServerSocket = new ServerSocket (PORT); }
-
-    public void run() throws Exception
-	{
-    	while (true)
-		{
-    		/* wait for a connection from a client */
-    		Socket s = dServerSocket.accept();
-
-    		/* then process the client's request */
-    		processRequest(s);
-    	}
+    public SimpleWebServer() throws Exception {
+        dServerSocket = new ServerSocket(PORT);
     }
 
-    /* Reads the HTTP request from the client, and responds with the file the user requested or a HTTP error code. */
-    public void processRequest(Socket s) throws Exception
-	{
-    	/* used to read data from the client */
-    	BufferedReader br = new BufferedReader (new InputStreamReader (s.getInputStream()));
-
-    	/* used to write data to the client */
-    	OutputStreamWriter osw =  new OutputStreamWriter (s.getOutputStream());
-
-    	/* read the HTTP request from the client */
-    	String request = br.readLine();
-
-    	String command = null;
-    	String pathname = null;
-
-    	/* parse the HTTP request */
-    	StringTokenizer st = new StringTokenizer (request, " ");
-
-    	command = st.nextToken();
-    	pathname = st.nextToken();
-
-    	if (command.equals("GET"))
-		{
-    		/* if the request is a GET try to respond with the file the user is requesting */
-    		System.out.println("Path name: "+pathname);
-    		serveFile (osw,pathname);
-    	}
-    	else
-		{
-    		/* if the request is a NOT a GET, return an error saying this server does not implement the requested command */
-    		osw.write ("HTTP/1.0 501 Not Implemented\n\n");
-    	}
-
-    	/* close the connection to the client */
-    	osw.close();
+    public void run() throws Exception {
+        while (true) {
+            Socket s = dServerSocket.accept();
+            processRequest(s);
+        }
     }
 
-    public void serveFile (OutputStreamWriter osw, String pathname) throws Exception
-	{
-    	FileReader fr=null;
-    	int c=-1;
-    	StringBuffer sb = new StringBuffer();
+    public void processRequest(Socket s) throws Exception {
+        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        OutputStreamWriter osw = new OutputStreamWriter(s.getOutputStream());
 
-    	/* remove the initial slash at the beginning of the pathname in the request */
-    	if (pathname.charAt(0)=='/')
-    		pathname=pathname.substring(1);
+        String request = br.readLine();
+        log(LOG_FILE, request);  // Log the request
 
-    	/* if there was no filename specified by the client, serve the "index.html" file */
-    	if (pathname.equals(""))
-    		pathname="index.html";
+        if (request == null || request.trim().isEmpty()) return;
 
-    	/* try to open file specified by pathname */
-    	try {
-            // System.out.println("Path name: "+pathname);
-    		fr = new FileReader (pathname);
-    		c = fr.read();
-    	}
-    	catch (Exception e) {
-    		/* if the file is not found,return the appropriate HTTP response code  */
-    		osw.write ("HTTP/1.0 404 Not Found\n\n");
-    		return;
-    	}
+        StringTokenizer st = new StringTokenizer(request, " ");
+        String command = st.nextToken();
+        String pathname = st.nextToken();
 
- 	/* if the requested file can be successfully opened
- 	   and read, then return an OK response code and
- 	   send the contents of the file */
-    	osw.write ("HTTP/1.0 200 OK\n\n");
-    	while (c != -1) {
-    		sb.append((char)c);
-    		c = fr.read();
-    	}
-    	osw.write (sb.toString());
+        if (command.equals("GET")) {
+            System.out.println("GET: " + pathname);
+            serveFile(osw, pathname);
+        } else if (command.equals("PUT")) {
+            System.out.println("PUT: " + pathname);
+            saveFile(br, osw, pathname);
+        } else {
+            osw.write("HTTP/1.0 501 Not Implemented\n\n");
+        }
+
+        osw.close();
     }
 
-    /* This method is called when the program is run from the command line. */
-    public static void main (String argv[]) throws Exception
-	{
-    	/* Create a SimpleWebServer object, and run it */
-    	SimpleWebServer sws = new SimpleWebServer();
-    	sws.run();
+    public void serveFile(OutputStreamWriter osw, String pathname) throws Exception {
+		// Define the maximum file size (in bytes) — for example, 1 MB (1,048,576 bytes)
+		long MAX_FILE_SIZE = 1048576; // 1 MB
+	
+		if (pathname.charAt(0) == '/') pathname = pathname.substring(1);
+		if (pathname.equals("")) pathname = "index.html";
+	
+		File file = new File(pathname);
+	
+		// Check if the file exists
+		if (!file.exists()) {
+			osw.write("HTTP/1.0 404 Not Found\n\n");
+			return;
+		}
+	
+		// Check if the file size exceeds the maximum allowed size
+		if (file.length() > MAX_FILE_SIZE) {
+			// Log the error to error_log.txt
+			log(ERROR_LOG_FILE, "File too large: " + pathname + " (size: " + file.length() + " bytes)");
+	
+			// Return 403 Forbidden response
+			osw.write("HTTP/1.0 403 Forbidden\n\n");
+			return;
+		}
+	
+		// If the file is small enough, serve the file
+		try (FileReader fr = new FileReader(file)) {
+			osw.write("HTTP/1.0 200 OK\n\n");
+			int c;
+			while ((c = fr.read()) != -1) {
+				osw.write((char) c);
+			}
+		} catch (IOException e) {
+			// Log any error while reading the file
+			log(ERROR_LOG_FILE, "Error reading file: " + pathname + " (" + e.getMessage() + ")");
+			osw.write("HTTP/1.0 500 Internal Server Error\n\n");
+		}
+	}
+	
+
+    public void saveFile(BufferedReader br, OutputStreamWriter osw, String pathname) throws Exception {
+        if (pathname.charAt(0) == '/') pathname = pathname.substring(1);
+        FileWriter fw = new FileWriter(pathname);
+        String line;
+        while ((line = br.readLine()) != null && !line.equals("EOF")) {
+            fw.write(line + "\n");
+        }
+        fw.close();
+        osw.write("HTTP/1.0 200 OK\n\n");
+    }
+
+
+    public void log(String logfile, String request) {
+        try (FileWriter log = new FileWriter(logfile, true)) {
+            log.write(new Date() + " - " + request + "\n");
+        } catch (IOException e) {
+            System.err.println("Failed to log request: " + e.getMessage());
+        }
+    }
+
+    public static void main(String argv[]) throws Exception {
+        SimpleWebServer sws = new SimpleWebServer();
+        sws.run();
     }
 }
