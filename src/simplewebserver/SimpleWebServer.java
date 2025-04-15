@@ -10,7 +10,7 @@ import java.net.*;
 import java.util.*;
 
 public class SimpleWebServer
-	{
+{
 
     /* Run the HTTP server on this TCP port. */
     private static final int PORT = 8080;
@@ -18,9 +18,8 @@ public class SimpleWebServer
     /* The socket used to process incoming connections from web clients */
     private static ServerSocket dServerSocket;
 
-    public SimpleWebServer () throws Exception {
-    	dServerSocket = new ServerSocket (PORT);
-    }
+	/* Constructor */
+    public SimpleWebServer () throws Exception { dServerSocket = new ServerSocket (PORT); }
 
     public void run() throws Exception
 	{
