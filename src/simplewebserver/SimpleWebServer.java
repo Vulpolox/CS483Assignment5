@@ -48,8 +48,7 @@ public class SimpleWebServer {
     }
 
     public void serveFile(OutputStreamWriter osw, String pathname) throws Exception {
-		// Define the maximum file size (in bytes) — for example, 1 MB (1,048,576 bytes)
-		long MAX_FILE_SIZE = 1048576; // 1 MB
+		long MAX_FILE_SIZE = 10; // only allows 10 bytes
 	
 		if (pathname.charAt(0) == '/') pathname = pathname.substring(1);
 		if (pathname.equals("")) pathname = "index.html";
