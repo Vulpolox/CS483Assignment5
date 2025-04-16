@@ -8,7 +8,7 @@ public class SimpleWebServer {
     private static final int PORT = 8080;
     private static ServerSocket dServerSocket;
     private static final String LOG_FILE = "./logs/server.log";
-	private static final String ERROR_LOG_FILE = "./logs/error.log";
+    private static final String ERROR_LOG_FILE = "./logs/error.log";
 
     public SimpleWebServer() throws Exception {
         dServerSocket = new ServerSocket(PORT);
@@ -26,9 +26,10 @@ public class SimpleWebServer {
         OutputStreamWriter osw = new OutputStreamWriter(s.getOutputStream());
 
         String request = br.readLine();
-        log(LOG_FILE, request);  // Log the request
+        log(LOG_FILE, request); // Log the request
 
-        if (request == null || request.trim().isEmpty()) return;
+        if (request == null || request.trim().isEmpty())
+            return;
 
         StringTokenizer st = new StringTokenizer(request, " ");
         String command = st.nextToken();
@@ -48,6 +49,7 @@ public class SimpleWebServer {
     }
 
     public void serveFile(OutputStreamWriter osw, String pathname) throws Exception {
+<<<<<<< Updated upstream
 		long MAX_FILE_SIZE = 10; // only allows 10 bytes
 	
 		if (pathname.charAt(0) == '/') pathname = pathname.substring(1);
@@ -85,9 +87,51 @@ public class SimpleWebServer {
 		}
 	}
 	
+=======
+        // Max size of 1000 bytes
+        long MAX_FILE_SIZE = 1000; // 1000 bytes
+
+        if (pathname.charAt(0) == '/')
+            pathname = pathname.substring(1);
+        if (pathname.equals(""))
+            pathname = "index.html";
+
+        File file = new File(pathname);
+
+        // Check if the file exists
+        if (!file.exists()) {
+            osw.write("HTTP/1.0 404 Not Found\n\n");
+            return;
+        }
+
+        // Check if the file size exceeds the maximum allowed size
+        if (file.length() > MAX_FILE_SIZE) {
+            // Log the error to error_log.txt
+            log(ERROR_LOG_FILE, "File too large: " + pathname + " (size: " + file.length() + " bytes)");
+
+            // Return 403 Forbidden response
+            osw.write("HTTP/1.0 403 Forbidden\n\n");
+            return;
+        }
+
+        // If the file is small enough, serve the file
+        try (FileReader fr = new FileReader(file)) {
+            osw.write("HTTP/1.0 200 OK\n\n");
+            int c;
+            while ((c = fr.read()) != -1) {
+                osw.write((char) c);
+            }
+        } catch (IOException e) {
+            // Log any error while reading the file
+            log(ERROR_LOG_FILE, "Error reading file: " + pathname + " (" + e.getMessage() + ")");
+            osw.write("HTTP/1.0 500 Internal Server Error\n\n");
+        }
+    }
+>>>>>>> Stashed changes
 
     public void saveFile(BufferedReader br, OutputStreamWriter osw, String pathname) throws Exception {
-        if (pathname.charAt(0) == '/') pathname = pathname.substring(1);
+        if (pathname.charAt(0) == '/')
+            pathname = pathname.substring(1);
         FileWriter fw = new FileWriter(pathname);
         String line;
         while ((line = br.readLine()) != null && !line.equals("EOF")) {
@@ -96,7 +140,6 @@ public class SimpleWebServer {
         fw.close();
         osw.write("HTTP/1.0 200 OK\n\n");
     }
-
 
     public void log(String logfile, String request) {
         try (FileWriter log = new FileWriter(logfile, true)) {
